@@ -1,0 +1,187 @@
+import tkinter as tk
+from tkinter import messagebox
+from PIL import Image, ImageTk
+import random, time, pygame
+from tkinter import font
+
+
+CATEGORIES = {
+    'Celebrities': [
+        'Arctic Monkeys', 'Alicia Keys', 'd4vd', 'Drake', 'Daniel Caesar',
+        'Luffy', 'USHER', 'Naruto', 'Post Malone', 'Bruno Mars',
+        'Shakira', 'SZA', 'Frank Ocean', 'Lana Del Rey',
+        'Kendrick Lamar', 'Green Day', 'Avenoir',
+        'Trevor Phillips', 'Joji', 'Oasis', 'Radiohead', 'Queen',
+        'J.Cole', 'Eminem', 'Tyler, The Creator', 'Mac Miller', 'Al James',
+        'Waiian', 'Alex Bruce', 'Vhong Navarro', 'Rey Valera', 'Imelda Papin', 'Rodel Naval'
+    ],
+    'Brands': [
+        'Toyota', 'Honda', 'Subaru', 'Mcdonalds', 'Porsche', 'Maserati',
+        'Lamborghini', 'Chevrolet', 'Nike', 'Uniqlo', 'Amazon', 'Spotify',
+        'Burberry', 'Chrome Hearts', 'Rolex', 'Louis Vuitton', 'Jollibee',
+        'Havaianas', 'Casio', 'Rolls Royce'
+    ],
+    'Animals': [
+        'Leopard', 'Black Mamba', 'Panther', 'Elephant', 'Giraffe', 'Tarantula',
+        'Tyranosaurus Rex', 'Arapaima', 'Gorilla', 'Crocodile', 'Butete',
+        'Gamabunta', 'Shukaku', 'Akamaru', 'Anaconda', 'Cobra', 'Hippopotamus', 'Chimpanzee'
+    ],
+    'Countries': [
+        'Argentina', 'Mexico', 'Slovakia', 'Thailand', 'Czech Republic', 'Australia',
+        'Saudi Arabia', 'Zimbabwe', 'Pakistan', 'Portugal', 'Malaysia', 'Nigeria',
+        'Somalia', 'Indonesia', 'Luxembourg', 'Switzerland', 'Latvia', 'Egypt', 'Afghanistan'
+    ],
+    'Random Things': [
+        'Quantum Mechanics', 'Lobotomy','',
+        'Supercalifragilisticexpialidocious', 'Pneumonoultramicroscopicsilicovolcanoconiosis',
+        'Chlorofluorocarbons', 'Electromagnetic', 'Mammoth Tusk', 'Doppelgänger',
+        'Hologram', 'Cybersecurity', 'Metamorphosis', 'Osmosis', 'Cryptocurrency',
+        'Neuroscience', 'Photosynthesis', 'Aerodynamics', 'Hyperspace', 'Neutron Star'
+    ]
+}
+
+
+class WordScrambleGame:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Word Scramble Game")
+        self.root.geometry("1920x1000")
+
+        
+        pygame.mixer.init()
+        pygame.mixer.music.load(r"E:\hakdog000\J._Cole_-_No_Role_Modelz_(mp3.pm).mp3")
+        pygame.mixer.music.set_volume(0.5)
+        pygame.mixer.music.play(-1)
+
+      
+        bg = Image.open(r"E:\hakdog000\hakdog.png").resize((1920, 1000))
+        self.bg_img = ImageTk.PhotoImage(bg)
+
+        
+        self.current_word = ""
+        self.category_words = []
+        self.used_words = set()
+        self.scrambled_word = tk.StringVar()
+        self.guess = tk.StringVar()
+        self.timer = tk.StringVar(value="Time: 60s")
+        self.time_left = 60
+        self.start_time = None
+        self.timer_running = False
+
+        self.frames = {n: tk.Frame(root) for n in ("welcome", "category", "game", "options")}
+        for frame in self.frames.values():
+            tk.Label(frame, image=self.bg_img).place(x=0, y=0, relwidth=1, relheight=1)
+
+        self.setup_welcome()
+        self.setup_category()
+        self.setup_game()
+        self.setup_options()
+
+        self.show_frame("welcome")
+        self.run_timer()
+
+    
+    def setup_welcome(self):
+        f = self.frames["welcome"]
+        tk.Label(f, text="🎯 Word Scramble Game 🎯", font=("Netflix Font Family)", 50, "bold"), bg="#ff5050").pack(pady=100)
+        for text, cmd in [("Start Game", lambda: self.show_frame("category")),
+                          ("Options", lambda: self.show_frame("options")),
+                          ("Quit", self.root.quit)]:
+            tk.Button(f, text=text, font=("Arial", 20), width=15, bg="#222", fg="white", command=cmd).pack(pady=10)
+
+    def setup_category(self):
+        f = self.frames["category"]
+        tk.Label(f, text="Select a Category", font=("Arial", 32, "bold"), bg="#ffa500").pack(pady=40)
+        for name in CATEGORIES:
+            tk.Button(f, text=name, font=("Arial", 18), width=20,
+                      command=lambda n=name: self.start_game(n)).pack(pady=8)
+        tk.Button(f, text="← Back", font=("Arial", 14), bg="#888", fg="white",
+                  command=lambda: self.show_frame("welcome")).pack(pady=20)
+
+    def setup_game(self):
+        f = self.frames["game"]
+        tk.Label(f, textvariable=self.scrambled_word, font=("Arial", 30, "bold")).pack(pady=40)
+        tk.Entry(f, textvariable=self.guess, font=("Arial", 20)).pack(pady=10)
+        tk.Button(f, text="Submit", font=("Arial", 16), command=self.check_guess).pack(pady=10)
+        tk.Button(f, text="New Word", font=("Arial", 16), command=self.new_word).pack(pady=10)
+        tk.Label(f, textvariable=self.timer, font=("Arial", 18)).pack(pady=20)
+        tk.Button(f, text="← Categories", font=("Arial", 14), bg="#888", fg="white",
+                  command=lambda: self.show_frame("category")).pack(pady=10)
+
+    def setup_options(self):
+        f = self.frames["options"]
+        tk.Label(f, text="Options", font=("Arial", 30, "bold")).pack(pady=40)
+        tk.Label(f, text="Music Volume", font=("Arial", 16)).pack(pady=10)
+        slider = tk.Scale(f, from_=0, to=1, orient="horizontal", resolution=0.1,
+                          command=lambda v: pygame.mixer.music.set_volume(float(v)))
+        slider.set(0.5)
+        slider.pack()
+        tk.Button(f, text="← Back", font=("Arial", 14), bg="#888", fg="white",
+                  command=lambda: self.show_frame("welcome")).pack(pady=40)
+
+    
+    def scramble(self, word):
+        return ' '.join([''.join(random.sample(w, len(w))) for w in word.split()])
+
+    
+    def new_word(self):
+        self.timer_running = False  
+        available_words = [w for w in self.category_words if w not in self.used_words]
+        if not available_words:
+            messagebox.showinfo("Finished!", "You've guessed all words in this category!")
+            self.show_frame("category")
+            return
+
+        self.current_word = random.choice(available_words)
+        self.scrambled_word.set(self.scramble(self.current_word))
+        self.guess.set("")
+        self.time_left, self.start_time = 60, time.time()
+        self.timer_running = True  
+
+    
+    def check_guess(self):
+       
+        self.timer_running = False
+
+        if self.guess.get().strip().lower() == self.current_word.lower():
+            messagebox.showinfo("Correct!", "Galing MO!")
+            self.used_words.add(self.current_word)
+        else:
+            messagebox.showerror("Wrong!", f"The correct word was: {self.current_word}")
+
+        self.new_word()  
+
+    def start_game(self, category):
+        self.category_words = CATEGORIES[category]
+        self.used_words.clear()
+        self.new_word()
+        self.show_frame("game")
+
+    def show_frame(self, name):
+        for f in self.frames.values():
+            f.pack_forget()
+        self.frames[name].pack(fill="both", expand=True)
+
+        
+        if name != "game":
+            self.timer_running = False
+
+    
+    def run_timer(self):
+        if self.timer_running and self.start_time:
+            remaining = self.time_left - int(time.time() - self.start_time)
+            if remaining >= 0:
+                self.timer.set(f"Time: {remaining}s")
+            else:
+               
+                self.timer_running = False
+                messagebox.showwarning("Time's Up!", f"The correct word was: {self.current_word}")
+                self.new_word()
+        self.root.after(1000, self.run_timer)
+
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    WordScrambleGame(root)
+    root.mainloop()
