@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Scramble Game</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #fcff50; }
+        .container { text-align: center; padding: 50px; }
+        #scrambled-word { font-size: 40px; font-weight: bold; }
+        #guess { font-size: 20px; padding: 10px; }
+        button { padding: 10px 20px; font-size: 20px; margin-top: 20px; }
+        #timer { font-size: 20px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Word Scramble Game 🎯</h1>
+        <p id="scrambled-word">Loading...</p>
+        <input type="text" id="guess" placeholder="Guess the word">
+        <button onclick="checkGuess()">Submit</button>
+        <button onclick="newWord()">New Word</button>
+        <p id="timer">Time: 60s</p>
+    </div>
+
+    <script>
+        const words = ["Arctic Monkeys", "Alicia Keys", "Drake", "Post Malone"];
+        let currentWord = "";
+        let timeLeft = 60;
+        let timer;
+
+        function scramble(word) {
+            return word.split('').sort(() => 0.5 - Math.random()).join('');
+        }
+
+        function newWord() {
+            const word = words[Math.floor(Math.random() * words.length)];
+            currentWord = word;
+            document.getElementById("scrambled-word").textContent = scramble(word);
+            document.getElementById("guess").value = "";
+            timeLeft = 60;
+            startTimer();
+        }
+
+        function startTimer() {
+            clearInterval(timer);
+            timer = setInterval(function() {
+                timeLeft--;
+                document.getElementById("timer").textContent = `Time: ${timeLeft}s`;
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    alert(`Time's up! The word was ${currentWord}`);
+                    newWord();
+                }
+            }, 1000);
+        }
+
+        function checkGuess() {
+            const guess = document.getElementById("guess").value.trim().toLowerCase();
+            if (guess === currentWord.toLowerCase()) {
+                alert("Correct! Well done!");
+                newWord();
+            } else {
+                alert(`Wrong! The correct word was: ${currentWord}`);
+            }
+        }
+
+        window.onload = newWord;
+    </script>
+</body>
+</html>
